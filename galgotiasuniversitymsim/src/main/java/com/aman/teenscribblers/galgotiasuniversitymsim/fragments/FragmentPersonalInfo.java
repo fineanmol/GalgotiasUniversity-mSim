@@ -1,5 +1,6 @@
 package com.aman.teenscribblers.galgotiasuniversitymsim.fragments;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
@@ -12,22 +13,25 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 
+import com.aman.teenscribblers.galgotiasuniversitymsim.R;
+import com.aman.teenscribblers.galgotiasuniversitymsim.activities.FullScreenImageActivity;
 import com.aman.teenscribblers.galgotiasuniversitymsim.adapter.PersonalInfoAdapter;
 import com.aman.teenscribblers.galgotiasuniversitymsim.application.GUApp;
 import com.aman.teenscribblers.galgotiasuniversitymsim.events.InfoEvent;
 import com.aman.teenscribblers.galgotiasuniversitymsim.events.SessionExpiredEvent;
+import com.aman.teenscribblers.galgotiasuniversitymsim.helper.GlideApp;
 import com.aman.teenscribblers.galgotiasuniversitymsim.helper.PrefUtils;
 import com.aman.teenscribblers.galgotiasuniversitymsim.jobs.PersonalInfoJob;
 import com.aman.teenscribblers.galgotiasuniversitymsim.jobs.PersonalInfoLocal;
 import com.aman.teenscribblers.galgotiasuniversitymsim.jobs.RegisterUserOnServerJob;
 import com.aman.teenscribblers.galgotiasuniversitymsim.parcels.InfoParcel;
-import com.aman.teenscribblers.galgotiasuniversitymsim.R;
+import com.aman.teenscribblers.galgotiasuniversitymsim.parcels.NewsParcel;
 import com.aman.teenscribblers.galgotiasuniversitymsim.service.RegistrationIntentService;
-import com.aman.teenscribblers.galgotiasuniversitymsim.transform.CircleTransform;
+import com.bumptech.glide.load.resource.bitmap.CircleCrop;
+import com.bumptech.glide.load.resource.bitmap.FitCenter;
 import com.crashlytics.android.Crashlytics;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.squareup.picasso.Picasso;
 
 import java.util.List;
 
@@ -68,22 +72,45 @@ public class FragmentPersonalInfo extends BaseFragment {
     }
 
     private void setProfilePicture() {
-        String url = PrefUtils.getFromPrefs(getContext(), PrefUtils.PREFS_USER_IMAGE, "");
+        final String url = PrefUtils.getFromPrefs(getContext(), PrefUtils.PREFS_USER_IMAGE, "");
         String gender = PrefUtils.getFromPrefs(getContext(), PrefUtils.PREFS_USER_GENDER_KEY, "Male");
         if (gender.contains("Female")) {
             image.setImageResource(R.drawable.ic_avatar_girl);
         }
         if (!url.equals("")) {
-            Picasso picasso = Picasso.with(getContext());
-            picasso.setIndicatorsEnabled(false);
-            picasso.load(url)
-                    .noPlaceholder()
-                    .centerInside()
-                    .resize(400, 400)
-                    .transform(new CircleTransform())
-                    .priority(Picasso.Priority.HIGH)
+            GlideApp.with(this)
+                    .load(url)
+                    .transforms(new FitCenter(), new CircleCrop())
                     .into(image);
+
+            image.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    startPhotoActivity(image, url);
+                }
+            });
         }
+    }
+
+    private void startPhotoActivity(ImageView imageView, String url) {
+
+        if (getActivity() == null) {
+            return;
+        }
+
+        Intent intent = new Intent(getActivity(), FullScreenImageActivity.class);
+        int location[] = new int[2];
+
+        imageView.getLocationOnScreen(location);
+        intent.putExtra("left", location[0]);
+        intent.putExtra("top", location[1]);
+        intent.putExtra("height", imageView.getHeight());
+        intent.putExtra("width", imageView.getWidth());
+        intent.putExtra("url", url);
+
+        startActivity(intent);
+        getActivity().overridePendingTransition(0, 0);
+
     }
 
     @Subscribe(threadMode = ThreadMode.MainThread)
@@ -110,9 +137,9 @@ public class FragmentPersonalInfo extends BaseFragment {
             pb.setVisibility(View.GONE);
             Snackbar.make(rootview, event.getData(), Snackbar.LENGTH_INDEFINITE).show();
         } else {
+            GUApp.getJobManager().addJobInBackground(new PersonalInfoLocal(getActivity()));
             logUser();
             GCMCalls();
-            GUApp.getJobManager().addJobInBackground(new PersonalInfoLocal(getActivity()));
         }
     }
 

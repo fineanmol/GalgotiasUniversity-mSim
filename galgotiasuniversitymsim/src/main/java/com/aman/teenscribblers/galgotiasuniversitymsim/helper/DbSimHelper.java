@@ -6,10 +6,13 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
+import android.util.SparseArray;
+import android.util.SparseLongArray;
 
 import com.aman.teenscribblers.galgotiasuniversitymsim.application.GUApp;
 import com.aman.teenscribblers.galgotiasuniversitymsim.parcels.NewsParcel;
 import com.aman.teenscribblers.galgotiasuniversitymsim.parcels.ResultParcel;
+import com.aman.teenscribblers.galgotiasuniversitymsim.parcels.SeatingPlanParcel;
 import com.aman.teenscribblers.galgotiasuniversitymsim.parcels.SimParcel;
 import com.aman.teenscribblers.galgotiasuniversitymsim.parcels.SubjectParcel;
 import com.aman.teenscribblers.galgotiasuniversitymsim.parcels.TimeTableParcel;
@@ -29,6 +32,7 @@ public class DbSimHelper extends SQLiteOpenHelper {
     static final String MonthlyTableName = "Monthly_Attendance";
     static final String TimeTableTableName = "TimeTable_Attendance";
     static final String NewsTableName = "News_Table";
+    static final String SeatingTableName = "Seating_Plan_Table";
     static final String ResultTableName = "Result_Table";
 
     // columns-common
@@ -59,6 +63,13 @@ public class DbSimHelper extends SQLiteOpenHelper {
     static final String colFaculty = "faculty";
     static final String colGroup = "class_group";
     static final String colHallno = "Hallno";
+
+    /* for seating plan table */
+    static final String colExamDate = "colExamDate";
+    static final String colExamTime = "examTime";
+    static final String colSubjectCode = "subjectCode";
+    static final String colRoomNumber = "roomNumber";
+    static final String colSeatNumber = "seatNumber";
     //   static final String colTimeSlot = "Time_Slot";
     //   static final String colSubj = "Subject";
 
@@ -66,6 +77,8 @@ public class DbSimHelper extends SQLiteOpenHelper {
     static final String colNote = "note";
     static final String colImageUrl = "image_url";
     static final String colAuthor = "author";
+    static final String colAuthorEmail = "a_email";
+    static final String colAuthorPic = "a_pic";
 
     /*for Results Table*/
     static final String colGrade = "grade";
@@ -108,10 +121,16 @@ public class DbSimHelper extends SQLiteOpenHelper {
 
     static final String Newssql = "CREATE TABLE " + NewsTableName + " ("
             + colID + " INTEGER PRIMARY KEY, " + colNote + " TEXT, "
-            + colImageUrl + " TEXT, " + colAuthor
+            + colImageUrl + " TEXT, " + colAuthor + " TEXT, " + colAuthorEmail + " TEXT, " + colAuthorPic
             + " TEXT);";
+
+    static final String seatingPlansql = "CREATE TABLE " + SeatingTableName + " ("
+            + colID + " INTEGER PRIMARY KEY, " + colExamDate + " TEXT, "
+            + colExamTime + " TEXT, " + colSubjectCode + " TEXT, " + colRoomNumber + " TEXT, " + colSeatNumber
+            + " TEXT);";
+
     private static final String TAG = "DBHelperClass";
-    private static final int DATABASE_VERSION = 18;
+    private static final int DATABASE_VERSION = 20;
     private static DbSimHelper mInstance = null;
 
     private DbSimHelper(Context context) {
@@ -138,6 +157,7 @@ public class DbSimHelper extends SQLiteOpenHelper {
         db.execSQL(timetablesql);
         db.execSQL(resulttablesql);
         db.execSQL(Newssql);
+        db.execSQL(seatingPlansql);
     }
 
     @Override
@@ -149,6 +169,7 @@ public class DbSimHelper extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS " + TimeTableTableName);
         db.execSQL("DROP TABLE IF EXISTS " + ResultTableName);
         db.execSQL("DROP TABLE IF EXISTS " + NewsTableName);
+        db.execSQL("DROP TABLE IF EXISTS " + SeatingTableName);
         onCreate(db);
     }
 
@@ -221,6 +242,18 @@ public class DbSimHelper extends SQLiteOpenHelper {
         db.close();
     }
 
+    public void addNewSeatingPlan(String examDate, String examTime, String subjectCode, String roomNumber, String seatNumber) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues cv = new ContentValues();
+        cv.put(colExamDate, examDate);
+        cv.put(colExamTime, examTime);
+        cv.put(colSubjectCode, subjectCode);
+        cv.put(colRoomNumber, roomNumber);
+        cv.put(colSeatNumber, seatNumber);
+        db.insert(SeatingTableName, colSubjectCode, cv);
+        db.close();
+    }
+
     public void addNewResult(String subject, String grade, String semester) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues cv = new ContentValues();
@@ -231,14 +264,39 @@ public class DbSimHelper extends SQLiteOpenHelper {
         db.close();
     }
 
-    public void addnewnews(String note, String url, String author) {
+    public void addnewnews(String id, String note, String url, String author, String authorEmail, String authorPic) throws Exception {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues cv = new ContentValues();
+        cv.put(colID, id);
         cv.put(colNote, note);
         cv.put(colImageUrl, url);
         cv.put(colAuthor, author);
-        db.insert(NewsTableName, colNote, cv);
+        cv.put(colAuthorEmail, authorEmail);
+        cv.put(colAuthorPic, authorPic);
+        db.insertOrThrow(NewsTableName, colNote, cv);
         db.close();
+    }
+
+    public List<NewsParcel> addnewnews(List<NewsParcel> parcelList) throws Exception {
+        SQLiteDatabase db = this.getWritableDatabase();
+        List<NewsParcel> insertedElementsList = new ArrayList<>();
+        db.beginTransaction();
+        for (NewsParcel parcel : parcelList) {
+            ContentValues cv = new ContentValues();
+            cv.put(colID, parcel.id);
+            cv.put(colNote, parcel.note);
+            cv.put(colImageUrl, parcel.getImage_url());
+            cv.put(colAuthor, parcel.author);
+            cv.put(colAuthorEmail, parcel.authorEmail);
+            cv.put(colAuthorPic, parcel.authorPic);
+            long d = db.insertWithOnConflict(NewsTableName, colNote, cv, SQLiteDatabase.CONFLICT_IGNORE);
+            if (d != -1)
+                insertedElementsList.add(parcel);
+        }
+        db.setTransactionSuccessful();
+        db.endTransaction();
+        db.close();
+        return insertedElementsList;
     }
 
     // int getArticlesCount() {
@@ -352,9 +410,27 @@ public class DbSimHelper extends SQLiteOpenHelper {
         return list;
     }
 
+    public List<SeatingPlanParcel> getSeatingPlan() {
+        List<SeatingPlanParcel> list = new ArrayList<>();
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cur = db.rawQuery("Select * FROM " + SeatingTableName
+                + " ORDER BY " + colID + " DESC", null);
+        // looping through all rows and adding to list
+        if (cur.moveToLast()) {
+            do {
+                list.add(new SeatingPlanParcel(cur.getString(1), cur.getString(2), cur.getString(3),
+                        cur.getString(4), cur.getString(5)));
+            } while (cur.moveToPrevious());
+        }
+        // closing connection
+        cur.close();
+        db.close();
+        return list;
+    }
+
     public List<String> getTimeTableDays() {
         List<String> list = new ArrayList<>();
-        SQLiteDatabase db = this.getWritableDatabase();
+        SQLiteDatabase db = this.getReadableDatabase();
         Cursor cur = db.rawQuery("Select DISTINCT " + colDay + " FROM " + TimeTableTableName + " ORDER BY " + colID + " DESC", null);
         // looping through all rows and adding to list
         if (cur.moveToLast()) {
@@ -386,7 +462,7 @@ public class DbSimHelper extends SQLiteOpenHelper {
 
     public List<ResultParcel> getResults(String semester) {
         List<ResultParcel> list = new ArrayList<>();
-        SQLiteDatabase db = this.getWritableDatabase();
+        SQLiteDatabase db = this.getReadableDatabase();
         Cursor cur = db.rawQuery("Select * FROM " + ResultTableName
                 + " WHERE " + colSem + "='" + semester + "'", null);
         // looping through all rows and adding to list
@@ -403,14 +479,14 @@ public class DbSimHelper extends SQLiteOpenHelper {
 
     public List<NewsParcel> getAllNews() {
         List<NewsParcel> list = new ArrayList<>();
-        SQLiteDatabase db = this.getWritableDatabase();
+        SQLiteDatabase db = this.getReadableDatabase();
         Cursor cur = db.rawQuery("Select * FROM " + NewsTableName + " ORDER BY "
                 + colID, null);
         // looping through all rows and adding to list
         if (cur.moveToLast()) {
             do {
-                Log.d("Database", "id=" + cur.getInt(0) + ":note=" + cur.getString(1) + ":imageUrl=" + cur.getString(2));
-                list.add(new NewsParcel(cur.getInt(0), cur.getString(1), cur.getString(2), cur.getString(3)));
+//                Log.d("Database", "id=" + cur.getInt(0) + ":note=" + cur.getString(1) + ":imageUrl=" + cur.getString(2));
+                list.add(new NewsParcel(cur.getInt(0), cur.getString(1), cur.getString(2), cur.getString(3), cur.getString(4), cur.getString(5)));
             } while (cur.moveToPrevious());
         }
         // closing connection
@@ -424,6 +500,11 @@ public class DbSimHelper extends SQLiteOpenHelper {
         Log.d(TAG, id);
         SQLiteDatabase db = this.getWritableDatabase();
         return db.delete(NewsTableName, colID + "=" + id, null) > 0;
+    }
+
+    public boolean deleteAllNews() {
+        SQLiteDatabase db = this.getWritableDatabase();
+        return db.delete(NewsTableName, null, null) > 0;
     }
 
 
@@ -442,9 +523,9 @@ public class DbSimHelper extends SQLiteOpenHelper {
         db.delete(TodayTableName, null, null);
     }
 
-    public void deleteMonthly() {
+    public void deleteSeatingPlan() {
         SQLiteDatabase db = this.getWritableDatabase();
-        db.delete(MonthlyTableName, null, null);
+        db.delete(SeatingTableName, null, null);
     }
 
     public void deleteSem() {

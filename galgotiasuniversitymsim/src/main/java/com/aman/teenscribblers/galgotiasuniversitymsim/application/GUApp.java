@@ -5,9 +5,10 @@ import android.app.Application;
 import android.content.Intent;
 import android.util.Log;
 
-import com.aman.teenscribblers.galgotiasuniversitymsim.helper.PrefUtils;
+import com.aman.teenscribblers.galgotiasuniversitymsim.BuildConfig;
 import com.aman.teenscribblers.galgotiasuniversitymsim.R;
 import com.aman.teenscribblers.galgotiasuniversitymsim.activities.StudentLogin;
+import com.aman.teenscribblers.galgotiasuniversitymsim.helper.PrefUtils;
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.config.Configuration;
 import com.birbit.android.jobqueue.log.CustomLogger;
@@ -117,5 +118,9 @@ public class GUApp extends Application {
                 .consumerKeepAlive(120)//wait 2 minute
                 .build();
         jobManager = new JobManager(configuration);
+    }
+
+    public static boolean isDebug() {
+        return BuildConfig.DEBUG;
     }
 }

@@ -16,7 +16,7 @@ import com.aman.teenscribblers.galgotiasuniversitymsim.events.SessionExpiredEven
 import com.aman.teenscribblers.galgotiasuniversitymsim.events.TimeTableStartEvent;
 import com.aman.teenscribblers.galgotiasuniversitymsim.events.TimeTableSuccessEvent;
 import com.aman.teenscribblers.galgotiasuniversitymsim.helper.AppConstants;
-import com.aman.teenscribblers.galgotiasuniversitymsim.jobs.TTFindParcel;
+import com.aman.teenscribblers.galgotiasuniversitymsim.jobs.TimeTableLocalJob;
 import com.aman.teenscribblers.galgotiasuniversitymsim.jobs.TimeTableJob;
 import com.aman.teenscribblers.galgotiasuniversitymsim.parcels.TimeTableParcel;
 import com.aman.teenscribblers.galgotiasuniversitymsim.R;
@@ -73,7 +73,7 @@ public class FragmentTimeTable extends BaseFragment {
         if (savedInstanceState != null) {
             day_type = savedInstanceState.getString("day");
         }
-        GUApp.getJobManager().addJobInBackground(new TTFindParcel(day_type));
+        GUApp.getJobManager().addJobInBackground(new TimeTableLocalJob(day_type));
     }
 
     private void uselist() {
@@ -130,7 +130,7 @@ public class FragmentTimeTable extends BaseFragment {
     @Subscribe(threadMode = ThreadMode.MainThread)
     public void onEventMainThread(TimeTableSuccessEvent event) {
         if (event.getParcel() == null) {
-            GUApp.getJobManager().addJobInBackground(new TTFindParcel(day_type));
+            GUApp.getJobManager().addJobInBackground(new TimeTableLocalJob(day_type));
         } else {
             loading.setVisibility(View.GONE);
             parcel = event.getParcel();

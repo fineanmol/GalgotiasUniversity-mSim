@@ -15,11 +15,14 @@
         <item name="android:textViewStyle">@style/AppTheme.Widget.TextView</item>
     </style>
 
+    <style name="translucent" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowBackground" >@color/translucent</item>
+        <item name="android:windowIsTranslucent">true</item>
+    </style>
+
     <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
 
     <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
-
-    <style name="AppTheme.Widget" />
 
     <style name="AppTheme.Widget.TextView" parent="android:Widget.TextView">
         <item name="fontPath">fonts/Brawler_Regular.ttf</item>
@@ -33,12 +36,4 @@
         <item name="fontPath">fonts/Brawler_Regular.ttf</item>
     </style>
 
-    <style name="PauseDialog" parent="@android:style/Theme.Dialog">
-        <item name="android:windowAnimationStyle">@style/PauseDialogAnimation</item>
-    </style>
-
-    <style name="PauseDialogAnimation">
-        <item name="android:windowEnterAnimation">@android:anim/fade_in</item>
-        <item name="android:windowExitAnimation">@android:anim/fade_out</item>
-    </style>
 </resources>
